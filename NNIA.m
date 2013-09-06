@@ -48,9 +48,17 @@ Datime(size(Datime,2)-4:size(Datime,2))=[];%%test date
 TestTime=clock;%%test time
 TestTime=[num2str(TestTime(4)),'-',num2str(TestTime(5))];
 Method='NNIA';
+
+NS = zeros(1,Trial);
+% paretof=[paretof;MEpa];
+runtime = zeros(1,Trial);
+Clonetime = zeros(1,Trial);
+DAStime = zeros(1,Trial);
+PNmtime = zeros(1,Trial);
+DONjudtime = zeros(1,Trial);
+RNDCDtime = zeros(1,Trial);
 paretof=[];
 
-runtime=[];
 for trial=1:Trial
     timerbegin=clock;
     %--------------------------------------------------------------------------
@@ -59,7 +67,7 @@ for trial=1:Trial
     %--------------------------------------------------------------------------
     pa=OVcom(POP,TestNO);
     DON = Identify_Dominant_Antibodies(pa);
-    nodom=find(DON==1);
+    nodom=(DON==1);
     MEpa=pa(nodom,:);MEPOP=POP(nodom,:);
     % numnod=size(MEPOP,1);
     [ClonePOP,Clonepa,~]=Update_Dominant_Population(MEPOP,MEpa,NA);
@@ -76,7 +84,7 @@ for trial=1:Trial
         NPOP=[MEPOP;cloneover];
         Npa=[MEpa;clonepa];
         [NDON,DONjudt]=Identify_Dominant_Antibodies(Npa);
-        Nnodom=find(NDON==1);
+        Nnodom=(NDON==1);
         NEpa=Npa(Nnodom,:);NEPOP=NPOP(Nnodom,:);
         % Nnumnod=size(NEPOP,1);
         [MEPOP, MEpa, ~]=Update_Dominant_Population(NEPOP,NEpa,n_D);
@@ -93,12 +101,12 @@ for trial=1:Trial
     end  %the end of iterations
     %--------------------------------------------------------------------------
     %Save the output solutions
-    [NS(trial),NF]=size(MEpa);Trials=trial; %used in eval! can't be removed
+    [NS(trial),NF]=size(MEpa); %used in eval! can't be removed
     paretof=[paretof;MEpa];
     runtime(trial)=etime(clock,timerbegin);
     Clonetime(trial)=Cloneti;DAStime(trial)=DASti;PNmtime(trial)=PNmti;
     DONjudtime(trial)=DONjudti;RNDCDtime(trial)=RNDCDti;
-    eval(['save ', testfunction Method Datime TestTime ,' Method Gmax NA CS paretof runtime Trials NS NF TestTime Datime testfunction ']) ;
+    eval(['save ', testfunction Method Datime TestTime ,' Method Gmax NA CS paretof runtime trial NS NF TestTime Datime testfunction ']) ;
 end  %the end of runs
 %--------------------------------------------------------------------------
 Frontshow(MEpa);% plot the Pareto fronts solved by the last run
@@ -122,7 +130,7 @@ for i=1:N
         k=1;
         while k<=C
             % Lessthan=[];
-            Lessthan=find(temppa(:,k)<pa(i,k));
+            Lessthan=(temppa(:,k)<pa(i,k));
             if size(Lessthan,1)~=0
                 DA(i)=0;k=C+1;
             else
@@ -143,7 +151,7 @@ i=1;
 while i<Ns
     deltf=pa-ones(Ns,1)*pa(i,:);
     deltf(i,:)=inf;
-    aa=find(sum(abs(deltf),2)==0);
+    aa=(sum(abs(deltf),2) == 0);
     POP(aa,:)=[];pa(aa,:)=[];
     [Ns,C]=size(pa);i=i+1;
 end
