@@ -26,18 +26,22 @@ clear all;
 fprintf('Nondominated Neighbor Immune Algorithm (NNIA) min\n');
 fprintf('Authour: Maoguo Gong and Licheng Jiao\n');
 fprintf('Last Modified: Oct. 10, 2007\n');
-print_EMOinstruction;%% display the instruction for running the programming.
+print_EMOinstruction;
+%% display the instruction for running the programming.
 %--------------------------------------------------------------------------
-TestNO=input('press the enter key after inputting the serial number of test problem:');
-Trial=input('input the number of independent runs:');
-Gmax=300;                              % maximum number of iterations(generations) default:500
+% TestNO=input('press the enter key after inputting the serial number of test problem:');
+% Trial=input('input the number of independent runs:');
+TestNO=1;
+Trial=1;
+Gmax=500;                              % maximum number of iterations(generations) default:500
 n_D=100;                               % (maximum) size of dominant population
 NA=20;                                 % size of active population
 CS=100;                                % clonal scale
 [bu,bd,testfunction]=getbud(TestNO);   % bu denotes the upper boundary of variable;bd denotes the nether boundary of variable;bu and bd has the same dimensionality.
 c=size(bu,2);
 pm=1/c;
-if bu==bd return;end
+if bu==bd 
+    return;end
 %--------------------------------------------------------------------------
 Datime=date;
 Datime(size(Datime,2)-4:size(Datime,2))=[];%%test date
@@ -51,19 +55,19 @@ for trial=1:Trial
     timerbegin=clock;
     %--------------------------------------------------------------------------
     POP=rand(n_D,c).*(ones(n_D,1)*bu-ones(n_D,1)*bd)+ones(n_D,1)*bd;
-    ME=[];%Initialization
+    % ME=[];%Initialization
     %--------------------------------------------------------------------------
     pa=OVcom(POP,TestNO);
-    [DON,DONt]=Identify_Dominant_Antibodies(pa);
+    DON = Identify_Dominant_Antibodies(pa);
     nodom=find(DON==1);
     MEpa=pa(nodom,:);MEPOP=POP(nodom,:);
-    numnod=size(MEPOP,1);
-    [ClonePOP,Clonepa,RNDCDt]=Update_Dominant_Population(MEPOP,MEpa,NA);
+    % numnod=size(MEPOP,1);
+    [ClonePOP,Clonepa,~]=Update_Dominant_Population(MEPOP,MEpa,NA);
 
-    it=0;Cloneti=0;DASti=0;PNmti=0;DONjudti=0;RNDCDti=0;AbAbfitcomti=0;
+    it=0;Cloneti=0;DASti=0;PNmti=0;DONjudti=0;RNDCDti=0;
     while it<Gmax   
         %--------------------------------------------------------------------------
-        cloneover=[];
+        % cloneover=[];
         [cloneover,Clonet]=Clonef(ClonePOP,Clonepa,CS);
         [cloneover,DASt]=Recombinationf(cloneover,bu,bd,ClonePOP);
         [cloneover,PNmt]=Mutationf(cloneover,bu,bd,pm);
@@ -74,8 +78,8 @@ for trial=1:Trial
         [NDON,DONjudt]=Identify_Dominant_Antibodies(Npa);
         Nnodom=find(NDON==1);
         NEpa=Npa(Nnodom,:);NEPOP=NPOP(Nnodom,:);
-        Nnumnod=size(NEPOP,1);
-        [MEPOP MEpa,RNDCDt]=Update_Dominant_Population(NEPOP,NEpa,n_D);
+        % Nnumnod=size(NEPOP,1);
+        [MEPOP, MEpa, ~]=Update_Dominant_Population(NEPOP,NEpa,n_D);
         numnod=size(MEPOP,1);
         [ClonePOP,Clonepa,RNDCDt]=Update_Dominant_Population(MEPOP,MEpa,NA);
         %Update Dominant Population
@@ -83,11 +87,13 @@ for trial=1:Trial
         it=it+1;
         Cloneti=Cloneti+Clonet;DASti=DASti+DASt;PNmti=PNmti+PNmt;
         DONjudti=DONjudti+DONjudt;RNDCDti=RNDCDti+RNDCDt;
+
         fprintf('time: %d   generation: %d    number of nodominate:  %d\n',trial,it,numnod);
+
     end  %the end of iterations
     %--------------------------------------------------------------------------
     %Save the output solutions
-    [NS(trial),NF]=size(MEpa);Trials=trial;
+    [NS(trial),NF]=size(MEpa);Trials=trial; %used in eval! can't be removed
     paretof=[paretof;MEpa];
     runtime(trial)=etime(clock,timerbegin);
     Clonetime(trial)=Cloneti;DAStime(trial)=DASti;PNmtime(trial)=PNmti;
@@ -106,16 +112,16 @@ DA=ones(N,1);
 for i=1:N
     temppa=pa;
     temppa(i,:)=[];
-    LEsign=ones(N-1,1);
+    % LEsign=ones(N-1,1);
     for j=1:C
-        LessEqual=find(temppa(:,j)<=pa(i,j));
-        tepa=[];tepa=temppa(LessEqual,:);
-        temppa=[];temppa=tepa;
+        LessEqual= temppa(:,j)<=pa(i,j);
+        tepa=temppa(LessEqual,:);
+        temppa=tepa;
     end
     if size(temppa,1)~=0
         k=1;
         while k<=C
-            Lessthan=[];
+            % Lessthan=[];
             Lessthan=find(temppa(:,k)<pa(i,k));
             if size(Lessthan,1)~=0
                 DA(i)=0;k=C+1;
@@ -128,10 +134,11 @@ end
 time=toc;
 %%-------------------------------------------------------------------------
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [EPOP,Epa,time]=Update_Dominant_Population(POP,pa,n_D); % Update Dominant Population
+function [EPOP,Epa,time]=Update_Dominant_Population(POP,pa,n_D) % Update Dominant Population
 %--------------------------------------------------------------------------
 tic;
-[Ns,C]=size(pa);padis=[];
+[Ns,C]=size(pa);
+% ;padis=[];
 i=1;
 while i<Ns
     deltf=pa-ones(Ns,1)*pa(i,:);
@@ -142,16 +149,16 @@ while i<Ns
 end
 if Ns>n_D
     for i=1:C
-        [k,l]=sort(pa(:,i));
-        N=[];M=[];N=pa(l,:);M=POP(l,:);
-        pa=[];POP=[];pa=N;POP=M;
+        [~,l]=sort(pa(:,i));
+        N=pa(l,:);M=POP(l,:);
+        pa=N;POP=M;
         pa(1,C+1)=Inf;pa(Ns,C+1)=Inf;
-        pai1=[];pad1=[];pai1=pa(3:Ns,i);pad1=pa(1:(Ns-2),i);
+        pai1=pa(3:Ns,i);pad1=pa(1:(Ns-2),i);
         fimin=min(pa(:,i));fimax=max(pa(:,i));
         pa(2:(Ns-1),C+1)=pa(2:(Ns-1),C+1)+(pai1-pad1)/(0.0001+fimax-fimin);
     end
-    padis=pa(:,C+1);pa=pa(:,1:C);POP=POP;
-    [aa,ss]=sort(-padis);
+    padis=pa(:,C+1);pa=pa(:,1:C);
+    [~,ss]=sort(-padis);
     EPOP=POP(ss(1:n_D),:);Epa=pa(ss(1:n_D),:);
 else
     EPOP=POP;Epa=pa;
@@ -163,12 +170,12 @@ time=toc;
 function  [NPOP,time]=Clonef(POP,pa,CS) 
 %--------------------------------------------------------------------------
 tic
-NC=[];
-[N,C]=size(POP);
-[POP,pa,padis]=CDAf(POP,pa);
-aa=find(padis==inf);
-bb=find(padis~=inf);
-if length(bb)>0
+% NC=[];
+N = size(POP);
+[POP,~,padis]=CDAf(POP,pa);
+aa=(padis==inf);
+bb=(padis~=inf);
+if ~isempty(bb)
     padis(aa)=2*max(max(padis(bb)));
     NC=ceil(CS*padis./sum(padis));
 else
@@ -185,13 +192,13 @@ time=toc;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [POP,pa,padis]=CDAf(tPOP,tpa) 
 %--------------------------------------------------------------------------
-[Ns,C]=size(tpa);padis=[];
+[Ns,C]=size(tpa);
 for i=1:C
-    [k,l]=sort(tpa(:,i));
-    N=[];M=[];N=tpa(l,:);M=tPOP(l,:);
-    tpa=[];tPOP=[];tpa=N;tPOP=M;
+    [~,l]=sort(tpa(:,i));
+    N=tpa(l,:);M=tPOP(l,:);
+    tpa=N;tPOP=M;
     tpa(1,C+1)=Inf;tpa(Ns,C+1)=Inf;
-    tpai1=[];tpad1=[];tpai1=tpa(3:Ns,i);tpad1=tpa(1:(Ns-2),i);
+    tpai1=tpa(3:Ns,i);tpad1=tpa(1:(Ns-2),i);
     fimin=min(tpa(:,i));fimax=max(tpa(:,i));
     tpa(2:(Ns-1),C+1)=tpa(2:(Ns-1),C+1)+(tpai1-tpad1)/(0.0001+fimax-fimin);
 end
@@ -199,7 +206,7 @@ pa=tpa(:,1:C);POP=tPOP;padis=tpa(:,C+1);
 %--------------------------------------------------------------------------
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [NPOP,time]=Recombinationf(POP,bu,bd,CPOP);
+function [NPOP,time]=Recombinationf(POP,bu,bd,CPOP)
 %--------------------------------------------------------------------------
 tic;
 eta_c=15;
