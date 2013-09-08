@@ -34,9 +34,9 @@ print_EMOinstruction;
 % Trial=input('input the number of independent runs:');
 TestNO=18;
 Trial=1;
-Gmax=400;                              % maximum number of iterations(generations) default:500
+Gmax=500;                              % maximum number of iterations(generations) default:500
 n_D=100;                               % (maximum) size of dominant population
-NA=20;                                 % size of active population
+n_A=20;                                 % size of active population
 CS=100;                                % clonal scale
 [bu,bd,testfunction]=getbud(TestNO);   % bu denotes the upper boundary of variable;bd denotes the nether boundary of variable;bu and bd has the same dimensionality.
 c=size(bu,2);
@@ -59,14 +59,12 @@ for trial=1:Trial
     %--------------------------------------------------------------------------
     % step 1: init population (n_D antibodies)
     POP=bsxfun(@times,rand(n_D,c),(bu-bd)) + ones(n_D,1)*bd;
-    % ME=[];%Initialization
     %--------------------------------------------------------------------------
     pa=OVcom(POP,TestNO); % pa: the current trade-off pareto front 
-    DON = Identify_Dominant_Antibodies(pa);
-    nodom=(DON==1);
-    MEpa=pa(nodom,:);MEPOP=POP(nodom,:);
-    % numnod=size(MEPOP,1);
-    [ClonePOP,Clonepa,~]=Update_Dominant_Population(MEPOP,MEpa,NA);
+    DON = Dominant_Antibodies_index(pa);
+    MEpa=pa(DON,:);MEPOP=POP(DON,:);
+    
+    [ClonePOP,Clonepa,~]=Update_Dominant_Population(MEPOP,MEpa,n_A);
 
     it=0;Cloneti=0;DASti=0;PNmti=0;DONjudti=0;RNDCDti=0;
     while it<Gmax   
@@ -79,13 +77,13 @@ for trial=1:Trial
         clonepa=OVcom(cloneover,TestNO);
         NPOP=[MEPOP;cloneover];
         Npa=[MEpa;clonepa];
-        [NDON,DONjudt]=Identify_Dominant_Antibodies(Npa);
+        [NDON,DONjudt]=Dominant_Antibodies_index(Npa);
         Nnodom=(NDON==1);
         NEpa=Npa(Nnodom,:);NEPOP=NPOP(Nnodom,:);
         % Nnumnod=size(NEPOP,1);
         [MEPOP, MEpa, ~]=Update_Dominant_Population(NEPOP,NEpa,n_D);
         numnod=size(MEPOP,1);
-        [ClonePOP,Clonepa,RNDCDt]=Update_Dominant_Population(MEPOP,MEpa,NA);
+        [ClonePOP,Clonepa,RNDCDt]=Update_Dominant_Population(MEPOP,MEpa,n_A);
         %Update Dominant Population
         %--------------------------------------------------------------------------
         it=it+1;
@@ -109,60 +107,48 @@ for trial=1:Trial
     TestTime=[num2str(TestTime(4)),'-',num2str(TestTime(5))];
     Method='NNIA';
 
-    eval(['save ', testfunction Method Datime TestTime ,' Method Gmax NA CS paretof runtime trial NS NF TestTime Datime testfunction ']) ;
+    eval(['save ', testfunction Method Datime TestTime ,' Method Gmax n_A CS paretof runtime trial NS NF TestTime Datime testfunction ']) ;
 end  %the end of runs
 %--------------------------------------------------------------------------
 Frontshow(MEpa);% plot the Pareto fronts solved by the last run
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [DA,time]=Identify_Dominant_Antibodies(pa) 
-% DA: Dominant Antibodies;
+function [DA,time]=Dominant_Antibodies_index(pa) 
+% DA: Dominant Antibodies index;
 % time: excution time
 tic;
 [N,C]=size(pa);
-DA=ones(N,1);
+DA=true(N,1);
 for i=1:N
+    % i_antibody = pa(i,:);% i th antibody, to be check wether it's domainant
     temppa=pa;
     temppa(i,:)=[]; % delete i th antibody
     for j=1:C
         temppa=temppa(temppa(:,j)<=pa(i,j), :);
-    end % temppa: antibodies dominanted by or equal to the i th antibody.
+    end; % temppa: antibodies dominanted by or equal to the i th antibody.
+    % temppa = temppa(sum(bsxfun(@le, temppa, i_antibody), 2)==C,:); 
     if ~isempty(temppa)
         for k=1:C
             Lessthan=(temppa(:,k)<pa(i,k));%lessthen: antibodies dominanted by the i th antibody.
             if ~isempty(Lessthan)
-                DA(i)=0;break;
-            end
+                DA(i)=false;break;end
         end
+        % DA(i) = isempty(find(bsxfun(@lt, temppa, i_antibody),1)); 
     end    
 end
 time=toc;
 %%-------------------------------------------------------------------------
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [EPOP,Epa,time]=Update_Dominant_Population(POP,pa,n_D) % Update Dominant Population
+function [EPOP,Epa,time]=Update_Dominant_Population(POP,pa,n_D) 
 %--------------------------------------------------------------------------
 tic;
-[Ns,C]=size(pa);
-% ;padis=[];
-i=1;
-while i<Ns
-    deltf=pa-ones(Ns,1)*pa(i,:);
-    deltf(i,:)=inf;
-    aa=(sum(abs(deltf),2) == 0);
-    POP(aa,:)=[];pa(aa,:)=[];
-    [Ns,C]=size(pa);i=i+1;
-end
+% remove duplicated antibodies
+[POP,index] = unique(POP,'rows');
+pa = pa(index,:);
+[Ns,~]=size(pa);
+
 if Ns>n_D
-    for i=1:C
-        [~,l]=sort(pa(:,i));
-        N=pa(l,:);M=POP(l,:);
-        pa=N;POP=M;
-        pa(1,C+1)=Inf;pa(Ns,C+1)=Inf;
-        pai1=pa(3:Ns,i);pad1=pa(1:(Ns-2),i);
-        fimin=min(pa(:,i));fimax=max(pa(:,i));
-        pa(2:(Ns-1),C+1)=pa(2:(Ns-1),C+1)+(pai1-pad1)/(0.0001+fimax-fimin);
-    end
-    padis=pa(:,C+1);pa=pa(:,1:C);
+    [POP,pa,padis]=CDAf(POP,pa); % pasid : crowding-distance
     [~,ss]=sort(-padis);
     EPOP=POP(ss(1:n_D),:);Epa=pa(ss(1:n_D),:);
 else
@@ -173,15 +159,14 @@ time=toc;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function  [NPOP,time]=Clonef(POP,pa,CS) 
-%--------------------------------------------------------------------------
+%-------------p-------------------------------------------------------------
 tic
-% NC=[];
 N = size(POP);
-[POP,~,padis]=CDAf(POP,pa);
+[POP,~,padis]=CDAf(POP,pa); % padis : crowding distance
 aa=(padis==inf);
 bb=(padis~=inf);
 if ~isempty(bb)
-    padis(aa)=2*max(max(padis(bb)));
+    padis(aa)=2*max(padis(bb)); % set inf crowding-distance antibody to 2 times of max remain antibody
     NC=ceil(CS*padis./sum(padis));
 else
     NC=ceil(CS/length(aa))+zeros(1,N);
@@ -195,7 +180,7 @@ time=toc;
 %--------------------------------------------------------------------------
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [POP,pa,padis]=CDAf(tPOP,tpa) 
+function [POP,pa,padis]=CDAf(tPOP,tpa) % pasid : crowding-distance
 %--------------------------------------------------------------------------
 [Ns,C]=size(tpa);
 for i=1:C
