@@ -31,7 +31,7 @@ print_EMOinstruction;
 %--------------------------------------------------------------------------
 % TestNO=input('press the enter key after inputting the serial number of test problem:');
 % Trial=input('input the number of independent runs:');
-TestNO=1;
+TestNO=18;
 Trial=1;
 Gmax=500;                              % maximum number of iterations(generations) default:500
 n_D=100;                               % (maximum) size of dominant population
@@ -44,7 +44,7 @@ if bu==bd
     return;end
 %--------------------------------------------------------------------------
 Datime=date;
-Datime(size(Datime,2)-4:size(Datime,2))=[];%%test date
+Datime(size(Datime,2)-4:size(Datime,2))=[];%%test date e.g: 08-sep
 TestTime=clock;%%test time
 TestTime=[num2str(TestTime(4)),'-',num2str(TestTime(5))];
 Method='NNIA';
@@ -62,10 +62,11 @@ paretof=[];
 for trial=1:Trial
     timerbegin=clock;
     %--------------------------------------------------------------------------
-    POP=rand(n_D,c).*(ones(n_D,1)*bu-ones(n_D,1)*bd)+ones(n_D,1)*bd;
+    % 初始化: 生成n_D 个抗体作为种群B_0
+    POP=bsxfun(@times,rand(n_D,c),(bu-bd)) + ones(n_D,1)*bd;
     % ME=[];%Initialization
     %--------------------------------------------------------------------------
-    pa=OVcom(POP,TestNO);
+    pa=OVcom(POP,TestNO); % pa: the current trade-off pareto front 
     DON = Identify_Dominant_Antibodies(pa);
     nodom=(DON==1);
     MEpa=pa(nodom,:);MEPOP=POP(nodom,:);
