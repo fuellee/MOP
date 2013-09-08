@@ -8,6 +8,7 @@ function NNIA()
 % Authors: Maoguo Gong and Licheng Jiao
 % April 7, 2006
 % Copyright (C) 2005-2006 by Maoguo Gong (e-mail: gong@ieee.org)
+% revised by fuellee
 %
 % REFERENCE
 % Please refer to the following paper if you use the toolbox NNIA
@@ -33,7 +34,7 @@ print_EMOinstruction;
 % Trial=input('input the number of independent runs:');
 TestNO=18;
 Trial=1;
-Gmax=500;                              % maximum number of iterations(generations) default:500
+Gmax=400;                              % maximum number of iterations(generations) default:500
 n_D=100;                               % (maximum) size of dominant population
 NA=20;                                 % size of active population
 CS=100;                                % clonal scale
@@ -43,12 +44,6 @@ pm=1/c;
 if bu==bd 
     return;end
 %--------------------------------------------------------------------------
-Datime=date;
-Datime(size(Datime,2)-4:size(Datime,2))=[];%%test date e.g: 08-sep
-TestTime=clock;%%test time
-TestTime=[num2str(TestTime(4)),'-',num2str(TestTime(5))];
-Method='NNIA';
-
 NS = zeros(1,Trial);
 % paretof=[paretof;MEpa];
 runtime = zeros(1,Trial);
@@ -62,7 +57,7 @@ paretof=[];
 for trial=1:Trial
     timerbegin=clock;
     %--------------------------------------------------------------------------
-    % 初始化: 生成n_D 个抗体作为种群B_0
+    % step 1: init population (n_D antibodies)
     POP=bsxfun(@times,rand(n_D,c),(bu-bd)) + ones(n_D,1)*bd;
     % ME=[];%Initialization
     %--------------------------------------------------------------------------
@@ -107,35 +102,36 @@ for trial=1:Trial
     runtime(trial)=etime(clock,timerbegin);
     Clonetime(trial)=Cloneti;DAStime(trial)=DASti;PNmtime(trial)=PNmti;
     DONjudtime(trial)=DONjudti;RNDCDtime(trial)=RNDCDti;
+
+    Datime=date;
+    Datime(size(Datime,2)-4:size(Datime,2))=[];%%test date e.g: 08-sep
+    TestTime=clock;%%test time
+    TestTime=[num2str(TestTime(4)),'-',num2str(TestTime(5))];
+    Method='NNIA';
+
     eval(['save ', testfunction Method Datime TestTime ,' Method Gmax NA CS paretof runtime trial NS NF TestTime Datime testfunction ']) ;
 end  %the end of runs
 %--------------------------------------------------------------------------
 Frontshow(MEpa);% plot the Pareto fronts solved by the last run
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [DA,time]=Identify_Dominant_Antibodies(pa) % Identifying Dominant Antibodies
-%--------------------------------------------------------------------------
+function [DA,time]=Identify_Dominant_Antibodies(pa) 
+% DA: Dominant Antibodies;
+% time: excution time
 tic;
 [N,C]=size(pa);
 DA=ones(N,1);
 for i=1:N
     temppa=pa;
-    temppa(i,:)=[];
-    % LEsign=ones(N-1,1);
+    temppa(i,:)=[]; % delete i th antibody
     for j=1:C
-        LessEqual= temppa(:,j)<=pa(i,j);
-        tepa=temppa(LessEqual,:);
-        temppa=tepa;
-    end
-    if size(temppa,1)~=0
-        k=1;
-        while k<=C
-            % Lessthan=[];
-            Lessthan=(temppa(:,k)<pa(i,k));
-            if size(Lessthan,1)~=0
-                DA(i)=0;k=C+1;
-            else
-                k=k+1;
+        temppa=temppa(temppa(:,j)<=pa(i,j), :);
+    end % temppa: antibodies dominanted by or equal to the i th antibody.
+    if ~isempty(temppa)
+        for k=1:C
+            Lessthan=(temppa(:,k)<pa(i,k));%lessthen: antibodies dominanted by the i th antibody.
+            if ~isempty(Lessthan)
+                DA(i)=0;break;
             end
         end
     end    
