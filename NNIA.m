@@ -33,7 +33,7 @@ print_EMOinstruction;
 % TestNO=input('press the enter key after inputting the serial number of test problem:');
 % Trial=input('input the number of independent runs:');
 TestNO=18;
-Trial=1;
+Trial=10;
 Gmax=500;                              % maximum number of iterations(generations) default:500
 n_D=100;                               % (maximum) size of dominant population
 n_A=20;                                 % size of active population
